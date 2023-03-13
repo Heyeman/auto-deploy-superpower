@@ -77,9 +77,19 @@ jobs:
       # Checkout code from git
       # Restore from cache
       # Your job code here
-      cd frontend
-      npm install
-      npm run test
+        - checkout
+      # Restore from cache
+        - restore_cache:
+            keys: [frontend-build]
+        # Your job code here
+        - run:
+            name: Test frontend
+            command: |
+              cd frontend
+              npm install
+              npm run test
+
+        - notify_on_failure
                 
   test-backend:
     docker:
@@ -90,9 +100,19 @@ jobs:
       # Checkout code from git
       # Restore from cache
       # Your job code here
-      cd backend
-      npm install
-      npm run test
+      - checkout
+      # Restore from cache
+      - restore_cache:
+          keys: [backend-build]
+      # Your job code here
+      - run:
+          name: Test backend
+          command: |
+            cd backend
+            npm install
+            npm run test
+
+      - notify_on_failure
 
             
   # scan-frontend:
