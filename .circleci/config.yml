@@ -354,32 +354,36 @@ jobs:
           id: ${CIRCLE_WORKFLOW_ID:0:7}
   smoke-test:
     docker:
-      - image: python:3.9.0-alpine
+      - image: cimg/base:stable
     steps:
       - checkout
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update curl nodejs npm
-            pip install awscli
+      - install_awscli
+      - install_nodejs
+
       - run:
           name: Backend smoke test.
           command: |
-            BACKEND_URL=$(curl --insecure https://kvdb.io/4WycpeXbDEMzNs5HwSpT1W/backendurl)
-            curl "$BACKEND_URL/api/status"
-            echo
-            echo ${BACKEND_URL}
+            sudo apt install curl -y
+            BACKEND_PUBLIC_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text)
+
+            export API_URL="http://${BACKEND_PUBLIC_IP}:3030"
+            echo $API_URL
+            if curl --connect-timeout 5 "${API_URL}/api/status" -v | grep "ok"; then exit 0; else exit 1; fi
+
       - run:
           name: Frontend smoke test.
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-east-1.amazonaws.com/#/employees"
-            curl -s ${URL} | grep -q "Welcome"
-      - destroy_environment:
-          id: ${CIRCLE_WORKFLOW_ID:0:7}
-      - revert_migrations:
-          id: ${CIRCLE_WORKFLOW_ID:0:7}
+            FRONTEND_WEBSITE=http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.${AWS_DEFAULT_REGION}.amazonaws.com
+            if curl -s $FRONTEND_WEBSITE -v | grep "Welcome"
+            then
+              # This is the intentional error, if "Welcome" is indeed in the response this step will exit with exit code 1
+              exit 0
+            else
+              exit 1
+            fi
       # Here's where you will add some code to rollback on failure  
 
   # cloudfront-update:
