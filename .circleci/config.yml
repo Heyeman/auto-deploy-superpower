@@ -265,48 +265,37 @@ jobs:
 
   #    # Here's where you will add some code to rollback on failure      
 
-  # deploy-frontend:
-  #   docker:
-  #     - image: circleci/node:13.8.0
-  #   steps:
-  #     - checkout
-  #     - aws-cli/setup
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           # your code here
-  #           sudo apt update && \
-  #           sudo apt install -y tar gzip curl
-  #     - run:
-  #         name: Install npm
-  #         command: |
-  #           # your code here
-  #     - attach_workspace:
-  #         at: ~/
-  #     - run:
-  #         name: Get backend url
-  #         command: |
-  #           # your code here
-  #           export BACKEND_IP=$(aws ec2 describe-instances \
-  #           --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-  #           --query "Reservations[*].Instances[*].PublicIpAddress" \
-  #           --output text)
-
-  #           export API_URL="http://${BACKEND_IP}:3030"
-  #           echo "${API_URL}"
-  #           echo "API_URL = ${API_URL}"
-  #           echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
-  #           cat frontend/.env
-  #     - run:
-  #         name: Deploy frontend objects
-  #         command: |
-  #           # your code here
-  #           cd frontend
-  #           npm install
-  #           npm run build
-  #           tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
-  #           aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-
+  deploy-frontend:
+    docker:
+      - image: cimg/node:13.8.0
+    steps:
+      - checkout
+      - install_awscli
+      - run:
+          name: Install frontend dependencies
+          command: |
+              cd frontend
+              npm install
+      - run:
+          name: Get backend URL
+          command: |
+            cd frontend
+            BACKEND_PUBLIC_IP=$(aws ec2 describe-instances \
+               --filters "Name=tag:Name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+               --query 'Reservations[*].Instances[*].PublicIpAddress' \
+               --output text)
+            curl -d "http://${BACKEND_PUBLIC_IP}:3030" https://kvdb.io/${4WycpeXbDEMzNs5HwSpT1W}/backendurl
+            echo "API_URL=http://${BACKEND_PUBLIC_IP}:3030" >> .env
+            echo "NODE_ENV=production" >> .env
+            cat .env
+            curl https://kvdb.io/${4WycpeXbDEMzNs5HwSpT1W}/backendurl
+      - run:
+          name: Deploy frontend artifact
+          command: |
+            cd frontend
+            npm run build
+            cp .env dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
   #     # Here's where you will add some code to rollback on failure      
                     
   # deploy-backend:
