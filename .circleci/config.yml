@@ -1,5 +1,7 @@
 version: 2.1
-
+orbs:
+  slack: circleci/slack@4.10.1
+  aws-cli: circleci/aws-cli@3.1.4
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -239,48 +241,71 @@ jobs:
 
   run-migrations:
     docker:
-      - image: circleci/node:13.8.0
+      - image: cimg/node:13.8.0
     steps:
       - checkout
+      - install_awscli
       - run:
           name: Run migrations
           command: |
             cd backend
-            # Run and save the migration output
-            npm install --no-audit --no-fund
-            npm run migrations > migrations_dump.txt
-            cat migrations_dump.txt
+            npm install
+            npm run migrations > ~/project/backend/migrations_dump.txt
       - run:
-          name: Send migration results to kvdb
+          name: Send migration status to kvdb.io
           command: |
-            # Your code here
-            ls ~/
-            if [[ 'has been executed successfully.' =~ $(grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt | uniq) ]]
+            cat ~/project/backend/migrations_dump.txt
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-                curl -k https://kvdb.io/4WycpeXbDEMzNs5HwSpT1W/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
+              echo "adding migration status to kvdb.io" 
+              curl -d "1" https://kvdb.io/4WycpeXbDEMzNs5HwSpT1W/migration_${CIRCLE_WORKFLOW_ID:0:7} 
+              echo "status = " && curl https://kvdb.io/${KVDB_BUCKET}/migration_${CIRCLE_WORKFLOW_ID:0:7}
             fi
 
   #    # Here's where you will add some code to rollback on failure      
 
   # deploy-frontend:
   #   docker:
-  #     # Docker image here that supports AWS CLI
+  #     - image: circleci/node:13.8.0
   #   steps:
-  #     # Checkout code from git
+  #     - checkout
+  #     - aws-cli/setup
   #     - run:
   #         name: Install dependencies
   #         command: |
   #           # your code here
+  #           sudo apt update && \
+  #           sudo apt install -y tar gzip curl
+  #     - run:
+  #         name: Install npm
+  #         command: |
+  #           # your code here
+  #     - attach_workspace:
+  #         at: ~/
   #     - run:
   #         name: Get backend url
   #         command: |
   #           # your code here
+  #           export BACKEND_IP=$(aws ec2 describe-instances \
+  #           --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #           --query "Reservations[*].Instances[*].PublicIpAddress" \
+  #           --output text)
+
   #           export API_URL="http://${BACKEND_IP}:3030"
   #           echo "${API_URL}"
+  #           echo "API_URL = ${API_URL}"
+  #           echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+  #           cat frontend/.env
   #     - run:
   #         name: Deploy frontend objects
   #         command: |
   #           # your code here
+  #           cd frontend
+  #           npm install
+  #           npm run build
+  #           tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+  #           aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+
   #     # Here's where you will add some code to rollback on failure      
                     
   # deploy-backend:
