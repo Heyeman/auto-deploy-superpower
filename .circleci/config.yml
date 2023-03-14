@@ -512,58 +512,58 @@ jobs:
           template: success_tagged_deployment_1
 
 workflows:
-  udapeople_app_workflow:
+  default:
     jobs:
-      # - build-frontend
-      #   # filters:
-      #   #   branches:
-      #   #     only: [Cloud-DevOps]
+      - build-frontend
+        # filters:
+        #   branches:
+        #     only: [Cloud-DevOps]
 
-      # - build-backend
-      #   # filters:
-      #   #   branches:
-      #   #     only: [Cloud-DevOps]
+      - build-backend
+        # filters:
+        #   branches:
+        #     only: [Cloud-DevOps]
 
-      # - test-frontend:
-      #     requires: [build-frontend]
-      #     # filters:
-      #     #   branches:
-      #     #     only: [Cloud-DevOps]
+      - test-frontend:
+          requires: [build-frontend]
+          # filters:
+          #   branches:
+          #     only: [Cloud-DevOps]
 
-      # - test-backend:
-      #     requires: [build-backend]
-      #     # filters:
-      #     #   branches:
-      #     #     only: [Cloud-DevOps]
+      - test-backend:
+          requires: [build-backend]
+          # filters:
+          #   branches:
+          #     only: [Cloud-DevOps]
 
-      # - scan-backend:
-      #     requires: [build-backend]
-      #     filters:
-      #       branches:
-      #         only: [Cloud-DevOps]
+      - scan-backend:
+          requires: [build-backend]
+          # filters:
+          #   branches:
+          #     only: [Cloud-DevOps]
 
-      # - scan-frontend:
-      #     requires: [build-frontend]
-      #     # filters:
-      #     #   branches:
-      #     #     only: [Cloud-DevOps]
+      - scan-frontend:
+          requires: [build-frontend]
+          # filters:
+            # branches:
+              # only: [Cloud-DevOps]
 
-      # - deploy-infrastructure:
-      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations, deploy-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations, deploy-frontend]
       # - cloudfront-update:
       #     requires: [deploy-backend]
       # - cleanup:
       #     requires: [cloudfront-update]
-      # - smoke-test:
-      #     requires: [cleanup]
-      # - notify_on_success:
-      #     requires:
-      #       - smoke-test
+      - smoke-test:
+          requires: [cleanup]
+      - notify_on_success:
+          requires:
+            - smoke-test
