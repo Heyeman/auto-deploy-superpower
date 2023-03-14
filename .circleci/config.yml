@@ -217,21 +217,29 @@ jobs:
 
       # Here's where you will add some code to rollback on failure      
 
-  # run-migrations:
-  #   docker:
-  #     # Docker image here that supports NodeJS
-  #   steps:
-  #     # Checkout code from git
-  #     - run:
-  #         name: Run migrations
-  #         command: |
-  #           # Your code here
-  #           exit 1
-  #     - run:
-  #         name: Send migration results to memstash
-  #         command: |
-  #           # Your code here
-  #           exit 1
+  run-migrations:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            # Run and save the migration output
+            npm install --no-audit --no-fund
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
+      - run:
+          name: Send migration results to kvdb
+          command: |
+            # Your code here
+            ls ~/
+            if [[ 'has been executed successfully.' =~ $(grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt | uniq) ]]
+            then
+                curl -k https://kvdb.io/4WycpeXbDEMzNs5HwSpT1W/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
+            fi
+
   #    # Here's where you will add some code to rollback on failure      
 
   # deploy-frontend:
@@ -350,8 +358,8 @@ workflows:
               # only: [test-feature-branch]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
       # - deploy-frontend:
       #     requires: [run-migrations]
       # - deploy-backend:
